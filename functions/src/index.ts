@@ -1,2 +1,2 @@
-const newTenant = require('./new-tenant');
-exports.newTenant = newTenant.newTenant;
+const createTenant = require('./create-tenant');
+exports.createTenant = createTenant.createTenant;
