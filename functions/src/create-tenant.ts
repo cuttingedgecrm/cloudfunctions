@@ -8,8 +8,19 @@ exports.createTenant = https.onCall(async (data, ctx) => {
   let company = data.company;
   let email = data.email;
   let password = data.password;
+
+  if (!company || company == "") {
+    throw new https.HttpsError('invalid-argument', 'Company name must be provided');
+  }
+  if (!email || email == "") {
+    throw new https.HttpsError('invalid-argument', 'Email must be provided');
+  }
+  if (!password || password == "") {
+    throw new https.HttpsError('invalid-argument', 'Password must be provided');
+  }
   
-  if (admin.apps.length === 0) {
+  const initialized = admin.apps.some(app => app?.name === "[DEFAULT]");
+  if (!initialized) {
     admin.initializeApp();
   }
 
@@ -19,7 +30,7 @@ exports.createTenant = https.onCall(async (data, ctx) => {
       console.log(8);
       throw new https.HttpsError('already-exists', 'A user with that email already exists');
     } else {
-      admin.auth().tenantManager().createTenant({
+      return admin.auth().tenantManager().createTenant({
         displayName: company,
         emailSignInConfig: {
           enabled: true,
@@ -29,7 +40,7 @@ exports.createTenant = https.onCall(async (data, ctx) => {
       .then((createdTenant: Tenant) => {
         console.log('Successfully created new tenant:', createdTenant.tenantId);
         const tenantAuth = admin.auth().tenantManager().authForTenant(createdTenant.tenantId);
-        tenantAuth.createUser({
+        return tenantAuth.createUser({
           email: email,
           emailVerified: false,
           password: password,
@@ -38,6 +49,10 @@ exports.createTenant = https.onCall(async (data, ctx) => {
           // See the UserRecord reference documentation to learn more.
           console.log('Successfully created new user:', userRecord.uid);
           // Tenant ID will be reflected in userRecord.tenantId.
+          return {
+            "status": "success",
+            "tenantId": createdTenant.tenantId
+          }
         })
         .catch((error: HttpsError) => {
           console.log('Error creating new user:', error);
@@ -48,9 +63,6 @@ exports.createTenant = https.onCall(async (data, ctx) => {
         console.log('Error creating new tenant:', error);
           throw error;
       });
-      return {
-        "status": "success"
-      }
     }
   });
 });
